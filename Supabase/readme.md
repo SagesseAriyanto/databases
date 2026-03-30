@@ -30,10 +30,10 @@ Understanding how data is organized is key to navigating the dashboard and your 
 
 ---
 
-## Keys & Access
-Supabase uses two specific keys to control who can talk to your data:
+## Keys & Access (The "Headers")
+Supabase keys are not sent in the URL (like `?key=...`). They are sent in **HTTP Headers**, which are invisible pieces of metadata (postman requests).
 
-* **Anon Key (Public):** Used in the Frontend (React). It is limited by security rules you set in the dashboard.
+* **Anon Key (Public):** Used in the Frontend (React). Anyone can find this in the browser's "Network Tab," but it is safe if RLS is on.
 * **Service Role Key (Secret):** Used in the Backend (Express). This is **Master Access**. It bypasses all security rules. **Never share this.**
 
 ---
