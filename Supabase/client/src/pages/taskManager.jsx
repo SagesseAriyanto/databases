@@ -1,70 +1,79 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../db.js';
-import TaskForm from './TaskForm';
-import TaskList from './TaskList';
+import TaskForm from '../components/TaskForm';
+import TaskList from '../components/TaskList';
 
-export default function TaskManager() {
-  // --- MEMORY (State) ---
-  const [tasks, setTasks] = useState([]);      // Stores the list of tasks from DB
-  const [title, setTitle] = useState('');      // Stores what's currently typed in Title input
-  const [desc, setDesc] = useState('');        // Stores what's currently typed in Desc input
-  const [editingId, setEditingId] = useState(null); // Stores ID if we are editing, otherwise null
+function TaskManager() {
+  // --- REACT MEMORY (STATE) ---
+  // [Current Value, Function to Update Value]
+  const [tasks, setTasks] = useState([]);      // Array of tasks from DB
+  const [title, setTitle] = useState('');      // Current text in Title input
+  const [desc, setDesc] = useState('');        // Current text in Description input
+  const [editId, setEditId] = useState(null);  // Stores ID only if we are editing
 
-  // --- TRIGGERS ---
-  // Run fetchTasks immediately when the page loads
-  useEffect(() => { fetchTasks(); }, []);
+  // --- AUTO-TRIGGER ---
+  // This runs getData() automatically as soon as the page opens
+  useEffect(() => { getData(); }, []);
 
-  // --- LOGIC FUNCTIONS ---
-  async function fetchTasks() {
+  // --- DATABASE LOGIC ---
+  
+  // 1. Fetch all tasks from Supabase
+  async function getData() {
     const { data } = await supabase.from('tasks').select('*').order('id', { ascending: false });
-    setTasks(data || []); // Update our "Memory" with the DB results
+    setTasks(data || []); // Save data to React memory
   }
 
-  async function handleSubmit() {
-    if (editingId) {
-      // If we have an editingId, we UPDATE
-      await supabase.from('tasks').update({ title, description: desc }).eq('id', editingId);
+  // 2. Add a new task OR Update an existing one
+  async function saveData() {
+    const taskInfo = { title: title, description: desc };
+
+    if (editId) {
+      // If we have an editId, update that specific row
+      await supabase.from('tasks').update(taskInfo).eq('id', editId);
     } else {
-      // Otherwise, we INSERT new row
-      await supabase.from('tasks').insert([{ title, description: desc }]);
+      // Otherwise, create a new row
+      await supabase.from('tasks').insert([taskInfo]);
     }
-    resetForm();
-    fetchTasks(); // Refresh the list after changes
+    
+    clearForm(); // Reset the input fields
+    getData();   // Refresh the list to show changes
   }
 
-  async function handleDelete(id) {
+  // 3. Delete a task
+  async function removeData(id) {
     await supabase.from('tasks').delete().eq('id', id);
-    fetchTasks(); // Refresh list
+    getData(); // Refresh the list
   }
 
-  function resetForm() {
-    setEditingId(null);
+  // Helper to clear the screen/inputs
+  function clearForm() {
+    setEditId(null);
     setTitle('');
     setDesc('');
   }
 
+  // --- THE HTML (JSX) ---
   return (
     <div className="container mx-auto p-8 max-w-2xl">
       <h1 className="text-3xl font-bold mb-8 text-center">Task Manager</h1>
       
-      {/* Why all the values? Because TaskForm is just a "dumb" box. 
-        We have to give it the variables (Props) so it knows what to show 
-        and what functions to call when a button is clicked.
-      */}
+      {/* Passing data and functions down to the Input Form */}
       <TaskForm 
         title={title} setTitle={setTitle} 
         desc={desc} setDesc={setDesc} 
-        onAction={handleSubmit} 
-        isEditing={!!editingId} 
-        onCancel={resetForm} 
+        onAction={saveData} 
+        isEditing={!!editId} 
+        onCancel={clearForm} 
       />
 
-      {/* We pass the list of tasks to the TaskList component to draw them */}
+      {/* Passing the list and delete/edit functions to the List display */}
       <TaskList 
         tasks={tasks} 
-        onEdit={(t) => { setEditingId(t.id); setTitle(t.title); setDesc(t.description); }} 
-        onDelete={handleDelete} 
+        onEdit={(t) => { setEditId(t.id); setTitle(t.title); setDesc(t.description); }} 
+        onDelete={removeData} 
       />
     </div>
   );
 }
+
+export default TaskManager;

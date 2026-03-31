@@ -1,4 +1,4 @@
-export default function TaskList({ tasks, onEdit, onDelete }) {
+function TaskList({ tasks, onEdit, onDelete }) {
   return (
     <div className="overflow-x-auto">
       <table className="table w-full">
@@ -29,3 +29,5 @@ export default function TaskList({ tasks, onEdit, onDelete }) {
     </div>
   );
 }
+
+export default TaskList;

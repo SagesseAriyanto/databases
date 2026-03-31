@@ -1,5 +1,5 @@
 // The arguments in the { } are "Props". They are values sent from the Parent (TaskManager).
-export default function TaskForm({ title, setTitle, desc, setDesc, onAction, isEditing, onCancel }) {
+function TaskForm({ title, setTitle, desc, setDesc, onAction, isEditing, onCancel }) {
   return (
     <div className="card bg-base-200 p-6 shadow-xl mb-10">
       <h2 className="text-xl font-semibold mb-4">{isEditing ? "Edit Task" : "Add New Task"}</h2>
@@ -32,3 +32,5 @@ export default function TaskForm({ title, setTitle, desc, setDesc, onAction, isE
     </div>
   );
 }
+
+export default TaskForm;
