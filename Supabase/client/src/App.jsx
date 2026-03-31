@@ -7,7 +7,7 @@ function App() {
       <main>
         <TaskManager />
       </main>
-      {/* This is where you would put a Footer later */}
+      {/* This is where you would put a Footer late */}
     </div>
   );
 }
