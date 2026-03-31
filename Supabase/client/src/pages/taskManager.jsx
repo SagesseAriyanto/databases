@@ -3,7 +3,7 @@ import { supabase } from '../db.js';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
 
-function TaskManager() {
+function TaskManager({ userEmail }) {
   // --- REACT MEMORY (STATE) ---
   // [Current Value, Function to Update Value]
   const [tasks, setTasks] = useState([]);      // Array of tasks from DB (empty initially)
@@ -74,7 +74,20 @@ function TaskManager() {
 
   return (
     <div className="container mx-auto p-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8 text-center">Task Manager</h1>
+      <div className="flex justify-between items-center mb-8 pb-4 border-b">
+        <div>
+          <h1 className="text-2xl font-bold">Task Manager</h1>
+          <p className="text-sm opacity-60">Welcome, {userEmail}</p>
+        </div>
+        
+        {/* LOGOUT BUTTON: Calls Supabase's sign out function */}
+        <button 
+          className="btn btn-outline btn-error btn-sm"
+          onClick={() => supabase.auth.signOut()}
+        >
+          Logout
+        </button>
+      </div>
       
       {/* Passing data and functions down to the Input Form */}
       <TaskForm 
