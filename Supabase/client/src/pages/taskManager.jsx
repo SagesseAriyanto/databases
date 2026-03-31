@@ -9,23 +9,29 @@ function TaskManager() {
   const [tasks, setTasks] = useState([]);      // Array of tasks from DB (empty initially)
   const [formData, setFormData] = useState({ title: '', description: '' }); // Object to hold form input values
   const [editId, setEditId] = useState(false);  // Stores ID only if we are editing
-
-  // This runs getData() once when the page loads. react reruns code on every change, but this empty array [] means "only run once"
-  useEffect(() => { getData(); }, []);
   
   // GET all tasks from Supabase
   async function getData() {
-    const { data } = await supabase.from('tasks').select('*').order('id', { ascending: false });
+    const { data } = await supabase
+                    .from('tasks')
+                    .select('*') // select all columns
+                    .order('id', { ascending: false }); // newest tasks first
     setTasks(data || []); // Save data to React memory
   }
 
+  // This runs getData() once when the page loads. react reruns code on every change, but this empty array [] means "only run once"
+  useEffect(() => { getData(); }, []);
+
   async function saveData() {
-    // build object to send to Supabase
+    // build object to send to Supabase. key must match column names in DB.
     const taskInfo = { title: formData.title, description: formData.description };
 
     if (editId) {
       // UPDATE row in the "tasks" table where id = editId
-      const { error} = await supabase.from('tasks').update(taskInfo).eq('id', editId);
+      const { error} = await supabase
+                      .from('tasks')
+                      .update(taskInfo) // single object containing new data
+                      .eq('id', editId); // "WHERE id = editId"
       if (error) {
       console.error("Error updating task:", error.message);
       } 
@@ -33,8 +39,10 @@ function TaskManager() {
       console.log("Success! The task is now in the database.");
       }
     } else {
-      // INSERT 1+ row(s) into the "tasks" table.
-      const { error } = await supabase.from('tasks').insert([taskInfo]);
+      // INSERT row(s) into the "tasks" table.
+      const { error } = await supabase
+                      .from('tasks')
+                      .insert([taskInfo]); // array of objects containing the data
       if (error) {
         console.error('Error inserting task:', error.message);
       } else {
@@ -45,10 +53,12 @@ function TaskManager() {
     clearForm(); // Reset input fields
     getData();   // Refresh the list
   }
-
   // DELETE a task
   async function removeData(id) {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    const { error } = await supabase
+                      .from('tasks')
+                      .delete()
+                      .eq('id', id); // "WHERE id = id"
     if (error) {
       console.error('Error deleting task:', error.message);
     } else {
