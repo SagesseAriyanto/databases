@@ -7,24 +7,26 @@ function App() {
   // If null: user is logged out. If object: user is logged in.
   const [session, setSession] = useState(null);
 
+  /*
+  Checks the browser's "vault" (local storage) for an existing login session.
+  This handles keeping the user logged in if they refresh the page.
+  */
+  const checkUser = async () => {
+    const currentSession = await supabase.auth.getSession();
+    console.log("Current session:", currentSession);
+    setSession(currentSession.data.session); 
+  };
+
   useEffect(() => {
-    /*
-    Checks the browser's "vault" (local storage) for an existing login session.
-    This handles keeping the user logged in if they refresh the page.
-    */
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session); 
-    };
     checkUser();
 
     /*
     We "subscribe" to any changes in auth (Login, Logout, or Signup).
     This function returns an object that we name 'authListener'.
     */
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((whatHappened, userData) => {
       // Whenever the user logs in or out, update our 'session' state immediately.
-      setSession(currentSession); 
+      setSession(userData); 
     });
     /*
     This is "Good Housekeeping." When the user closes the app/tab,
