@@ -40,13 +40,22 @@
 
 ---
 
-## The "Single Page" Mystery (Routing)
+## Component Logic & Memory
 
-In Express, changing pages means the server sends a new file. In React, you only ever load `index.html` once. This is called a **Single Page Application (SPA)**.
+### JSX Rules
+* **The Return:** Every `.jsx` file **must** return HTML/JSX code. This is the blueprint for what the user sees.
+* **Functions First:** In React, we define our logic (functions) *above* the return statement, not in a separate script tag at the bottom.
 
-* **The Picture Frame:** `App.jsx` holds the components that are **always visible** (like your Navbar and Footer), regardless of which "page" you are on.
-* **The Swappable Content:** When you "change pages," React doesn't reload the site. It simply hides one component (e.g., `Home.jsx`) and shows another (e.g., `Login.jsx`) in the middle of the frame.
-* **The Benefit:** This is why React feels so fast—there is no "white flash" or waiting for a server to send a new page. It works just like the `<%- body %>` tag in ejs-mate.
+### Memory (The `useState` Hook)
+In React, you don't use regular variables like `let x = 5` to change the UI. You use **State**.
+* **The Variable (`tasks`):** The current value. You treat this as Read-Only.
+* **The Setter (`setTasks`):** A function built automatically by React. This is the **only** way to change the variable and trigger the screen to refresh.
+* **The Safety Net (`|| []`):** Always use `setTasks(data || [])`. This prevents your app from crashing if the database returns `null` or is empty.
+
+
+
+### Triggers (The `useEffect` Hook)
+* **`useEffect(() => { ... }, [])`**: This is the "On Page Load" trigger. It runs your code (like fetching data) exactly once as soon as the component appears on the screen.
 
 ---
 
@@ -55,15 +64,16 @@ In Express, changing pages means the server sends a new file. In React, you only
 To avoid "File Bloat" in `App.jsx`, we break the UI into small pieces. These are all just `.jsx` files, but we organize them by purpose:
 
 * **Separation of Concerns:** Each `.jsx` file should only do ONE thing.
-* **Organization:** * `/src/components`: For small parts (Navbar, Footer, Button, StudySpotCard).
+* **Organization:** * `/src/components`: For small parts (Navbar, Footer, Button, Card).
     * `/src/pages`: For big views/screens (Login, Home, StudySpots).
-* **Reusability:** Design one `StudySpotCard.jsx` and use it for every spot in **RexHub** by just passing in different data from your database.
+* **Props (Passing Data):** Since components are isolated, the "Parent" page (like `TaskManager`) must pass data down to the "Children" components (like `TaskList`) using **Props**. Think of this like passing arguments to a function.
 
 ---
 
 ## Key Differences from Express
 
 * **Client-Side**: The browser builds the page, not the server.
+* **Import vs Require:** In React/Vite, we **must** use `import` (ES Modules). `require()` will cause an error in the browser.
 * **No Refresh**: React only updates the specific parts of the screen that change.
 * **Direct DB Access**: You talk to Supabase directly from the frontend using your **Anon Key** and **RLS Policies**.
 

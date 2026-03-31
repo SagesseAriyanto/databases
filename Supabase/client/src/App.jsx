@@ -1,3 +1,4 @@
+// Boilerplate code for React page. React reruns on every change
 import TaskManager from './pages/taskManager';
 
 function App() {

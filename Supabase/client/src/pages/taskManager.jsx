@@ -6,70 +6,73 @@ import TaskList from '../components/TaskList';
 function TaskManager() {
   // --- REACT MEMORY (STATE) ---
   // [Current Value, Function to Update Value]
-  const [tasks, setTasks] = useState([]);      // Array of tasks from DB
-  const [title, setTitle] = useState('');      // Current text in Title input
-  const [desc, setDesc] = useState('');        // Current text in Description input
-  const [editId, setEditId] = useState(null);  // Stores ID only if we are editing
+  const [tasks, setTasks] = useState([]);      // Array of tasks from DB (empty initially)
+  const [formData, setFormData] = useState({ title: '', description: '' }); // Object to hold form input values
+  const [editId, setEditId] = useState(false);  // Stores ID only if we are editing
 
-  // --- AUTO-TRIGGER ---
-  // This runs getData() automatically as soon as the page opens
+  // This runs getData() once when the page loads. react reruns code on every change, but this empty array [] means "only run once"
   useEffect(() => { getData(); }, []);
-
-  // --- DATABASE LOGIC ---
   
-  // 1. Fetch all tasks from Supabase
+  // GET all tasks from Supabase
   async function getData() {
     const { data } = await supabase.from('tasks').select('*').order('id', { ascending: false });
     setTasks(data || []); // Save data to React memory
   }
 
-  // 2. Add a new task OR Update an existing one
   async function saveData() {
-    const taskInfo = { title: title, description: desc };
+    // build object to send to Supabase
+    const taskInfo = { title: formData.title, description: formData.description };
 
     if (editId) {
-      // If we have an editId, update that specific row
-      await supabase.from('tasks').update(taskInfo).eq('id', editId);
+      // UPDATE row in the "tasks" table where id = editId
+      const { error } = await supabase.from('tasks').update(taskInfo).eq('id', editId);
+      if (error) {
+        console.error('Error updating task:', error);
+      }
     } else {
-      // Otherwise, create a new row
-      await supabase.from('tasks').insert([taskInfo]);
+      // INSERT 1+ row(s) into the "tasks" table.
+      const { error } = await supabase.from('tasks').insert([taskInfo]);
+      if (error) {
+        console.error('Error inserting task:', error);
+      }
     }
     
-    clearForm(); // Reset the input fields
-    getData();   // Refresh the list to show changes
+    clearForm(); // Reset input fields
+    getData();   // Refresh the list
   }
 
-  // 3. Delete a task
+  // DELETE a task
   async function removeData(id) {
-    await supabase.from('tasks').delete().eq('id', id);
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting task:', error);
+    }
     getData(); // Refresh the list
   }
 
-  // Helper to clear the screen/inputs
   function clearForm() {
-    setEditId(null);
-    setTitle('');
-    setDesc('');
+    setEditId(false);
+    setFormData({ title: '', description: '' });
   }
 
-  // --- THE HTML (JSX) ---
   return (
     <div className="container mx-auto p-8 max-w-2xl">
       <h1 className="text-3xl font-bold mb-8 text-center">Task Manager</h1>
       
       {/* Passing data and functions down to the Input Form */}
       <TaskForm 
-        title={title} setTitle={setTitle} 
-        desc={desc} setDesc={setDesc} 
+        formData={formData} 
+        setFormData={setFormData}
         onAction={saveData} 
-        isEditing={!!editId} 
+        editId={editId}
         onCancel={clearForm} 
       />
 
       {/* Passing the list and delete/edit functions to the List display */}
       <TaskList 
         tasks={tasks} 
-        onEdit={(t) => { setEditId(t.id); setTitle(t.title); setDesc(t.description); }} 
+        onEdit={(t) => {setEditId(t.id); // Store the ID of the task we want to change
+                        setFormData({ title: t.title, description: t.description }); }} 
         onDelete={removeData} 
       />
     </div>
