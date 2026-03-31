@@ -25,15 +25,20 @@ function TaskManager() {
 
     if (editId) {
       // UPDATE row in the "tasks" table where id = editId
-      const { error } = await supabase.from('tasks').update(taskInfo).eq('id', editId);
+      const { error} = await supabase.from('tasks').update(taskInfo).eq('id', editId);
       if (error) {
-        console.error('Error updating task:', error);
+      console.error("Error updating task:", error.message);
+      } 
+      else {
+      console.log("Success! The task is now in the database.");
       }
     } else {
       // INSERT 1+ row(s) into the "tasks" table.
       const { error } = await supabase.from('tasks').insert([taskInfo]);
       if (error) {
-        console.error('Error inserting task:', error);
+        console.error('Error inserting task:', error.message);
+      } else {
+        console.log('Task inserted successfully');
       }
     }
     
@@ -45,7 +50,9 @@ function TaskManager() {
   async function removeData(id) {
     const { error } = await supabase.from('tasks').delete().eq('id', id);
     if (error) {
-      console.error('Error deleting task:', error);
+      console.error('Error deleting task:', error.message);
+    } else {
+      console.log('Task deleted successfully');
     }
     getData(); // Refresh the list
   }
