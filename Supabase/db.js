@@ -14,16 +14,10 @@ const supabaseUrl = 'https://xyz.supabase.co';
    - Service Role Key: Best for Express. Master access (Master Badge).
    - Anon Key: Best for React. Limited access (Visitor Badge).
 */
-const supabaseKey = 'your-secret-key';
+const ANON_KEY = 'your-anon-key';
+const SERVICE_KEY = 'your-service-role-key';
 
-// The active connection object used to send commands
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Using our Connection to ask for data
-const getData = async () => {
-    // "On our Connection, from 'users' table, select all"
-    const { data } = await supabase.from('users').select('*');
-    return data;
-};
+// The active connection object used to send commands (toggle between anon or service key)
+const supabase = createClient(supabaseUrl, ANON_KEY);
 
 module.exports = supabase;
