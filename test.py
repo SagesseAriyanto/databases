@@ -1,2 +1,0 @@
-a="dog"
-print(a)
