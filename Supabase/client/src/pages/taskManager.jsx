@@ -42,7 +42,7 @@ function TaskManager({ userEmail }) {
       // INSERT row(s) into the "tasks" table.
       const { error } = await supabase
                       .from('tasks')
-                      .insert([taskInfo]); // array of objects containing the data
+                      .insert({ ...taskInfo, email: userEmail }); // array of objects containing the data
       if (error) {
         console.error('Error inserting task:', error.message);
       } else {
