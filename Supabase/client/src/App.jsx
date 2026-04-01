@@ -24,16 +24,16 @@ function App() {
     We "subscribe" to any changes in auth (Login, Logout, or Signup).
     This function returns an object that we name 'authListener'.
     */
-    const { data: authListener } = supabase.auth.onAuthStateChange((whatHappened, userData) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((whatHappened, activeSession) => {
       // Whenever the user logs in or out, update our 'session' state immediately.
-      setSession(userData); 
+      setSession(activeSession);
     });
     /*
     This is "Good Housekeeping." When the user closes the app/tab,
     we tell the listener to stop watching to prevent memory leaks.
     */
     return () => {
-      authListener.subscription.unsubscribe();
+      authListener?.subscription?.unsubscribe();
     };
 
   }, []); // [] = Run this entire "Installation" block only once on startup.
@@ -50,3 +50,11 @@ function App() {
 }
 
 export default App;
+
+/*
+Note: we enabled RLS (Row Level Security) on the "tasks" table in Supabase. This means that we need to create RLS policies to allow users to read/write their own tasks. We created 4 policies:
+1. Enable read access for all users (SELECT)
+2. Enable insert access for authenticated users (INSERT)
+3. Enable update access for all users based on email (UPDATE)
+4. Enable delete access for all users based on email (DELETE)
+*/

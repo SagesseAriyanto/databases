@@ -15,6 +15,9 @@ function TaskList({ tasks, onEdit, onDelete }) {
               <td>
                 <div className="font-bold">{task.title}</div>
                 <div className="text-sm opacity-50">{task.description}</div>
+                {task.image_url && (
+                  <img src={task.image_url} alt="" className="mt-2 max-h-48 object-cover rounded" />
+                )}
               </td>
               
               <td className="text-right">

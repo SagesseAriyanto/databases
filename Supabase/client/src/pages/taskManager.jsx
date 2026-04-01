@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../db.js';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
+import ImageUpload from '../components/imageUpload.jsx'; // Import the new component
 
 function TaskManager({ userEmail }) {
   // --- REACT MEMORY (STATE) ---
   // [Current Value, Function to Update Value]
   const [tasks, setTasks] = useState([]);      // Array of tasks from DB (empty initially)
   const [formData, setFormData] = useState({ title: '', description: '' }); // Object to hold form input values
+  const [file, setFile] = useState(null);       // Memory for the chosen image file
   const [editId, setEditId] = useState(false);  // Stores ID only if we are editing
+  const [errorMessage, setErrorMessage] = useState('');
   
   // GET all tasks from Supabase
   async function getData() {
@@ -22,53 +25,87 @@ function TaskManager({ userEmail }) {
   // This runs getData() once when the page loads. react reruns code on every change, but this empty array [] means "only run once"
   useEffect(() => { getData(); }, []);
 
-  async function saveData() {
-    // build object to send to Supabase. key must match column names in DB.
-    const taskInfo = { title: formData.title, description: formData.description };
+  /* --- REAL-TIME SUBSCRIPTION ---
+This listens for NEW data being added to the "tasks" table, so the UI updates instantly without the user having to refresh. */
+  useEffect(() => {
+    // Create a "Channel" (a private radio frequency for your app)
+    const channel = supabase.channel("tasks-channel");
 
-    if (editId) {
-      // UPDATE row in the "tasks" table where id = editId
-      const { error} = await supabase
-                      .from('tasks')
-                      .update(taskInfo) // single object containing new data
-                      .eq('id', editId); // "WHERE id = editId"
-      if (error) {
-      console.error("Error updating task:", error.message);
-      } 
-      else {
-      console.log("Success! The task is now in the database.");
+    // Tell the channel to listen for "INSERT" events on the "tasks" table
+    channel.on(
+      "postgres_changes", 
+      { event: "INSERT", schema: "public", table: "tasks" }, 
+      (payload) => {
+        // payload.new = the actual row that was just created in the database
+        const newTask = payload.new; 
+
+        // Update the UI by adding the new task to the TOP of the current list
+        // (prevTasks) => ... ensures we are using the most up-to-date list in memory
+        setTasks((prevTasks) => [newTask, ...prevTasks]);
       }
-    } else {
-      // INSERT row(s) into the "tasks" table.
-      const { error } = await supabase
-                      .from('tasks')
-                      .insert({ ...taskInfo, email: userEmail }); // array of objects containing the data
-      if (error) {
-        console.error('Error inserting task:', error.message);
-      } else {
-        console.log('Task inserted successfully');
-      }
+    )
+    // Actually turn the listener ON
+    .subscribe();
+
+    // THE CLEANUP (The Destructor)
+    // If the user leaves this page, we must stop the listener to save memory.
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []); // Empty array means: "Setup this listener once when the page loads."
+
+  async function saveData() {
+    setErrorMessage('');
+    let imageUrl = null;
+
+    if (!formData.title.trim()) return setErrorMessage('Task title is required.');
+
+    // --- OPTIONAL IMAGE UPLOAD ---
+    if (file) {
+      const fileName = `${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('tasks-images') // Make sure this bucket exists and is public!
+        .upload(fileName, file);
+
+      if (uploadError) return setErrorMessage("Image upload failed." + uploadError.message);
+      
+      // Get the public URL to save in the database
+      const { data: urlData } = supabase.storage.from('tasks-images').getPublicUrl(fileName);
+      imageUrl = urlData.publicUrl;
     }
+    // Note that we must have policies in Supabase to allow inserting this new "image_url" column!
+
+    const taskInfo = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      image_url: imageUrl // Add this column to your 'tasks' table in Supabase!
+    };
+
+    const query = editId 
+      ? supabase.from('tasks').update(taskInfo).eq('id', editId) 
+      : supabase.from('tasks').insert({ ...taskInfo, email: userEmail });
+
+    const { error } = await query;
     
-    clearForm(); // Reset input fields
-    getData();   // Refresh the list
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
+      clearForm();
+      getData();
+    }
   }
+
   // DELETE a task
   async function removeData(id) {
-    const { error } = await supabase
-                      .from('tasks')
-                      .delete()
-                      .eq('id', id); // "WHERE id = id"
-    if (error) {
-      console.error('Error deleting task:', error.message);
-    } else {
-      console.log('Task deleted successfully');
-    }
-    getData(); // Refresh the list
+    setErrorMessage('');
+    const { error } = await supabase.from('tasks').delete().eq('id', id); 
+    if (error) setErrorMessage(error.message);
+    else getData(); // Refresh the list
   }
 
   function clearForm() {
     setEditId(false);
+    setFile(null);
     setFormData({ title: '', description: '' });
   }
 
@@ -79,30 +116,28 @@ function TaskManager({ userEmail }) {
           <h1 className="text-2xl font-bold">Task Manager</h1>
           <p className="text-sm opacity-60">Welcome, {userEmail}</p>
         </div>
-        
-        {/* LOGOUT BUTTON: Calls Supabase's sign out function */}
-        <button 
-          className="btn btn-outline btn-error btn-sm"
-          onClick={() => supabase.auth.signOut()}
-        >
+        <button className="btn btn-outline btn-error btn-sm" onClick={() => supabase.auth.signOut()}>
           Logout
         </button>
       </div>
       
-      {/* Passing data and functions down to the Input Form */}
+      <ImageUpload onFileSelect={setFile} selectedFile={file} />
+
       <TaskForm 
-        formData={formData} 
-        setFormData={setFormData}
-        onAction={saveData} 
-        editId={editId}
-        onCancel={clearForm} 
+        formData={formData} setFormData={setFormData}
+        onAction={saveData} editId={editId} onCancel={clearForm} 
       />
 
-      {/* Passing the list and delete/edit functions to the List display */}
+      {errorMessage && (
+        <div className="alert alert-error mb-6"><span>{errorMessage}</span></div>
+      )}
+
       <TaskList 
         tasks={tasks} 
-        onEdit={(t) => {setEditId(t.id); // Store the ID of the task we want to change
-                        setFormData({ title: t.title, description: t.description }); }} 
+        onEdit={(t) => {
+          setEditId(t.id);
+          setFormData({ title: t.title, description: t.description }); 
+        }} 
         onDelete={removeData} 
       />
     </div>
